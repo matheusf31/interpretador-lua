@@ -74,8 +74,8 @@ function regexIf(line)
   local str = "if" 
   local verificaIf = string.match(line, str)
   
-  -- identifica o lado esquerdo da operaçao                               -- nessa parte acho que a gente pode fazer separado
-  local str2 = "if (%l*%d*%[?%]?)"                                        -- pra poder usar onde tem operações
+  -- identifica o lado esquerdo da operaçao                               
+  local str2 = "if (%l*%d*%[?%]?)"                                 
   local ladoesquerdo = string.match(line, str2)
   print(ladoesquerdo)
 
