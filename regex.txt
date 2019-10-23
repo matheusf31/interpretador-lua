@@ -1,0 +1,16 @@
+regex a serem feitos
+
+  allyson:
+    declaração da função
+    var
+    begin
+    end
+    operações
+    print
+    
+  matheus:
+    if
+    then
+    fi
+    else
+    chamada da função

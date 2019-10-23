@@ -1,0 +1,3 @@
+podemos colocar variaveis criadas em uma tabela
+
+como fazer escopo dinamico?
