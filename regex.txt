@@ -2,10 +2,9 @@ regex a serem feitos
 
   allyson:
     declaração da função
-    var
     begin
     end
-    operações
+    chamada da função
     print
     
   matheus:
@@ -13,4 +12,5 @@ regex a serem feitos
     then
     fi
     else
-    chamada da função
+    var
+    operações

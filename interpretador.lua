@@ -75,7 +75,7 @@ function regexIf(line)
   local verificaIf = string.match(line, str)
   
   -- identifica o lado esquerdo da operaçao                               
-  local str2 = "if (%l*%d*%[?%]?)"                                 
+  local str2 = "if (%l*%d*%[?%-?%d*%]?)"
   local ladoesquerdo = string.match(line, str2)
   print(ladoesquerdo)
 
@@ -84,8 +84,7 @@ function regexIf(line)
   print(cmp)
   
   -- identifica o lado direito da operaçao
-  local str3 = "if %l*%d*%[?%]? " .. cmp .. " (%l*%d*)"
-  print("str3 = ", str3)
+  local str3 = "if %l*%d*%[?%-?%d*%]? " .. cmp .. " (%l*%d*%[?%-?%d*%]?)"
   local ladodireito = string.match(line, str3)
   print(ladodireito)
   
@@ -97,7 +96,6 @@ end
 --
 for line in file:lines() do
   -- print(line)
-
   regexIf(line)
 end
 
