@@ -1,8 +1,14 @@
-a = 13
-if a == 12 then
-    print(a)
-elseif a == 10 then 
-    print(a)
-elseif a == 13 then
-    print(a)
-end
+tabela = {}
+tabela["i[2]"] = {}
+tabela["i[2]"][0] = 0
+tabela["i[2]"][1] = 1
+
+print(tabela["i[2]"][1])
+
+
+
+var i[2]
+
+i[2] = 1
+
+i = 3

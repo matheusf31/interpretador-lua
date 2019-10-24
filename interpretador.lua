@@ -16,7 +16,8 @@ if not file then
    os.exit(1)
 end
 
----------- PARTE DO REGEX
+
+-- ### REGEX ###
 
 
 --
@@ -85,6 +86,7 @@ function regexDeclaracaoFuncao(line)
 	if nomefuncao == "main" then
 		tabelafuncoes["main"] = {}
     pilha[#pilha+1] = "main"
+    tabelafuncoes["main"]["numVariaveisNaTabela"] = 0
     return "main" -- olhar depois
   else
 		return assinatura
@@ -157,24 +159,67 @@ end
 -- regex de atribuição
 --
 function regexAtribuicao(line)
-  local rgx, rgx2, rgx3 -- regex
-  local variavel, attr, ladoEsquedoOperacao, ladoDireitoOperacao, op --variaveis
+  local rgx, rgx2, rgx3, rgx4
+  local variavel, attr, ladoEsquedoOperacao, ladoDireitoOperacao, op, posicaoVetor
   
-  -- essa expressao significa que o argumento passado no lado direito da atribuicao pode tanto ser nome, vetor, numero ou chamada de funcao
-  rgx = "(%l*%[?%-?%d*%]?)%s+(=)%s+(%l*%d*%[?%-?%d*%]?%(?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%)?)"
-  variavel, attr, ladoEsquedoOperacao = string.match(line, rgx)
+  -- variável de controle da pilha
+  local j = 0 
   
-  rgx2 = "%l*%[?%-?%d*%]?%s+=%s+%l*%d*%[?%-?%d*%]?%(?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%)?%s+([%+%-%*%/])"
+
+  -- essa expressão significa que o argumento passado no lado direito da atribuicao pode tanto ser nome, vetor, numero ou chamada de função
+  rgx = "(%l*)%[?(%-?%d*)%]?%s+(=)%s+(%l*%d*%[?%-?%d*%]?%(?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?%)?)"
+  variavel, posicaoVetor, attr, ladoEsquedoOperacao = string.match(line, rgx)
+
+  rgx2 = "%l*%[?(%-?%d*)%]?%s+=%s+%l*%d*%[?%-?%d*%]?%(?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?%)?([%+%-%*%/])"
   op = string.match(line, rgx2)
 
+  if variavel == nil then
+    return nil
+  end
+
+  -- se for nula faz uma atribuição
   if(op == nil) then
-    -- ARRUMAR RETORNO posso retornar so a atribuição
+
+    -- olhar quem está na posição 1 até o fim da tabelade funcoes, pra fazer a atribuição a variável correta
+    for i = 1, #pilha do
+
+      -- caso a variável não esteja no escopo atual procuramos na função chamada anteriormente, simulação de escopo dinâmico
+      if tabelafuncoes[pilha[#pilha+j]][variavel] == nil then 
+        j = j-1
+      else
+        -- verificar se é um vetor
+        if posicaoVetor == nil or posicaoVetor == "" then
+          tabelafuncoes[pilha[#pilha+j]][variavel] = ladoEsquedoOperacao
+        -- se for um vetor a gente faz outro tipo de atribuição
+        else
+          -- corrige a diferença do vetor que existe entre lua e a linguagem do bruno para valores positivos
+          if tonumber(posicaoVetor) >= 0 then
+            
+            posicaoVetor = corrigeVetorPositivo(posicaoVetor)
+            --print(type(posicaoVetor))
+            tabelafuncoes[pilha[#pilha+j]][variavel][posicaoVetor] = ladoEsquedoOperacao
+          -- corrige a diferença do vetor que existe entre lua e a linguagem do bruno para valores negativos
+          else
+            posicaoVetor = tonumber(posicaoVetor)
+            posicaoVetor = corrigeVetorNegativo(posicaoVetor, #tabelafuncoes[pilha[#pilha+j]][variavel])
+            tabelafuncoes[pilha[#pilha+j]][variavel][posicaoVetor] = ladoEsquedoOperacao
+          end
+        end
+      end
+    end
+    
+    return true
+  
+  -- caso for uma operação
   else
     -- regex que identifica o lado direito da operação                                                                                 -- vv essa é a parte que queremos vv
-    rgx3 = "%l*%[?%-?%d*%]?%s+=%s+%l*%d*%[?%-?%d*%]?%(?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%)?%s+[%+%-%*%/]%s+(%l*%d*%[?%-?%d*%]?%(?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%)?)"
+    rgx3 = "[%+%-%*%/]%s+(%l*%d*%[?%-?%d*%]?%(?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?%)?)"
     ladoDireitoOperacao = string.match(line, rgx3)
+    print(variavel, attr, ladoEsquedoOperacao, op, ladoDireitoOperacao)
     -- ARRUMAR RETORNO posso retornar a operacao que está sendo feita
   end
+
+
 end
 
 
@@ -185,29 +230,36 @@ function regexVar(line)
   local rgx
   local variavel, numeroVetor
 
-  rgx = "var%s+(%l*%[?(%d*)%]?)"
-  variavel, numeroVetor = string.match(line, rgx)
-  
+  rgx = "var%s+(%l*)%[?(%d*)%]?"
+  variavel, numeroVetor = string.match(line, rgx) -- Extração do nome da variável e do número do vetor
+
+
   if variavel == nil then
     return nil
   end
 
-  if numeroVetor == "" then
+  -- Quando a atribuição não possui um vetor a direita da igualdade
+  if numeroVetor == "" then 
     tabelafuncoes[pilha[#pilha]][variavel] = 0
-  else
+    tabelafuncoes[pilha[#pilha]]["numVariaveisNaTabela"] = tabelafuncoes[pilha[#pilha]]["numVariaveisNaTabela"] + 1
+  -- Quando a atribuição possui um vetor a direita da igualdade
+  else  
     tabelafuncoes[pilha[#pilha]][variavel] = {}
     for i = 1, tonumber(numeroVetor) do
       tabelafuncoes[pilha[#pilha]][variavel][i] = 0
     end
+    tabelafuncoes[pilha[#pilha]]["numVariaveisNaTabela"] = tabelafuncoes[pilha[#pilha]]["numVariaveisNaTabela"] + 1
   end
 
   if numeroVetor ~= "" then
-    imprimeTabela1(tabelafuncoes[pilha[#pilha]][variavel])
+    -- para ver o que tem dentro do vetor
+    -- imprimeTabela1(tabelafuncoes[pilha[#pilha]][variavel])
   end
   
   return variavel
 
 end
+
 
 --
 -- regex de begin
@@ -219,8 +271,16 @@ function regexBegin(line)
   return aux
 end
 
- 
----------- PARTE DO REGEX
+
+-- ### FIM DO REGEX ###
+
+function corrigeVetorPositivo(posicaoVetor) 
+  return posicaoVetor + 1
+end
+
+function corrigeVetorNegativo(posicaoVetor, tamanhoVetor)
+  return posicaoVetor + tamanhoVetor + 1
+end
 
 function imprimeTabela1(t)
   for k, v in pairs(t) do
@@ -246,24 +306,26 @@ function imprimePilha()
   print()
 end
 
-
 function iniciaInterpretador(line)
-
   if regexDeclaracaoFuncao(line) ~= nil then
-    imprimeTabela1(tabelafuncoes)
-    imprimePilha()
+    -- imprimeTabela1(tabelafuncoes)
+    -- imprimePilha()
     return 
   elseif regexVar(line) ~= nil then
     imprimeTabela2(tabelafuncoes)
+    print("\n")
     return 
   elseif regexBegin(line) ~= nil then
     return
   elseif regexAtribuicao(line) ~= nil then
-    teste = regexDeclaracaoFuncao(line)
-  elseif regexIf(line) ~= nil then
-    teste = regexDeclaracaoFuncao(line)
-  elseif regexChamadaFuncao(line) ~= nil then
-    teste = regexDeclaracaoFuncao(line)
+    imprimeTabela2(tabelafuncoes)
+    imprimeTabela1(tabelafuncoes[pilha[#pilha]]["x"])
+    imprimeTabela1(tabelafuncoes[pilha[#pilha]]["i"])
+    return
+  -- elseif regexIf(line) ~= nil then
+  --   teste = regexDeclaracaoFuncao(line)
+  -- elseif regexChamadaFuncao(line) ~= nil then
+  --   teste = regexDeclaracaoFuncao(line)
   end
 end
 
@@ -275,7 +337,6 @@ for line in file:lines() do
   -- print(line)
 
   iniciaInterpretador(line)
-
 end
 
 file:close()
