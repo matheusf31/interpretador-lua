@@ -95,7 +95,7 @@ end
 -- regex de atribuição
 --
 function regexAtribuicao(line)
-  local rgx = "(%l+%[?%-?%d*%]?) (=) (%l+%d*%[?%-?%d*%]?)" -- fazer um if aqui
+  local rgx = "(%l+%[?%-?%d*%]?) (=) (%l+%d*%[?%-?%d*%]?)" -- fazer um if aqui (teste)
   local variavel, attr, arg = string.match(line, rgx)
   print(variavel)
 end
