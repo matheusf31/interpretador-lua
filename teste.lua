@@ -1,4 +1,9 @@
-teste = "if 1 == 1" -- regex pro comparador
-regex = "==?>?<?!=?"
-cmp = string.match(teste, regex) -- vou armazenar o comparador que está na linha
-print(cmp)
+local line = "func()"
+local rgx = "(%l+%[?%-?%d*%]?) (=) " .. if (regexfunccall(line) == nil) "(%l+%d*%[?%-?%d*%]?)" : regexfunccall(line)
+local variavel, attr, arg = string.match("var = ", rgx)
+print(variavel)
+
+function regexfunccall(line)
+  local str = line
+  return str
+end

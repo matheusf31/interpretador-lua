@@ -1,1 +1,5 @@
-if a[22] >= teste then
+if i == 1 then
+ ret = 1
+else
+ ret = i * fat(tmp)
+fi

@@ -71,24 +71,35 @@ end
 --
 function regexIf(line)
   -- identifica se é um if
-  local str = "if" 
+  local str = "if"
   local verificaIf = string.match(line, str)
   
   -- identifica o lado esquerdo da operaçao                               
-  local str2 = "if (%l*%d*%[?%-?%d*%]?)"
+  local str2 = "if%s+(%l+%d*%[?%-?%d*%]?)"
   local ladoesquerdo = string.match(line, str2)
-  print(ladoesquerdo)
+  print("lado esquerdo =", ladoesquerdo)
 
   -- identifica qual operador temos
   local cmp = regexComparacao(line) 
   print(cmp)
   
   -- identifica o lado direito da operaçao
-  local str3 = "if %l*%d*%[?%-?%d*%]? " .. cmp .. " (%l*%d*%[?%-?%d*%]?)"
+  local str3 = "if%s+%l+%d*%[?%-?%d*%]? " .. cmp .. " (%l+%d*%[?%-?%d*%]?)"
   local ladodireito = string.match(line, str3)
   print(ladodireito)
-  
+
+  regexAtribuicao(line)
 end
+
+--
+-- regex de atribuição
+--
+function regexAtribuicao(line)
+  local rgx = "(%l+%[?%-?%d*%]?) (=) (%l+%d*%[?%-?%d*%]?)" -- fazer um if aqui
+  local variavel, attr, arg = string.match(line, rgx)
+  print(variavel)
+end
+
 
 
 --
