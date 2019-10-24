@@ -1,7 +1,10 @@
+tabelafuncoes = {}
+pilha = {}
+
 --
 -- Pega o nome do arquivo passado como parâmetro (se houver)
 --
-local filename = "./Testes/print.txt"
+local filename = "./Testes/teste.txt"
 if not filename then
    print("Usage: lua interpretador.lua <prog.bpl>")
    os.exit(1)
@@ -12,6 +15,8 @@ if not file then
    print(string.format("[ERRO] Cannot open file %q", filename))
    os.exit(1)
 end
+
+---------- PARTE DO REGEX
 
 
 --
@@ -78,9 +83,10 @@ function regexDeclaracaoFuncao(line)
 	local assinatura, nomefuncao = string.match(line,str0)	
 	
 	if nomefuncao == "main" then
-		--Colocar ela na tabela
-		--Chamar execução da main
-	else
+		tabelafuncoes["main"] = {}
+    pilha[#pilha+1] = "main"
+    return "main" -- olhar depois
+  else
 		return assinatura
 	end
 end
@@ -155,10 +161,10 @@ function regexAtribuicao(line)
   local variavel, attr, ladoEsquedoOperacao, ladoDireitoOperacao, op --variaveis
   
   -- essa expressao significa que o argumento passado no lado direito da atribuicao pode tanto ser nome, vetor, numero ou chamada de funcao
-  rgx = "(%l*%[?%-?%d*%]?)%s+(=)%s+(%l*%d*%[?%-?%d*%]?%(?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%)?)" -- rever os espaços 
+  rgx = "(%l*%[?%-?%d*%]?)%s+(=)%s+(%l*%d*%[?%-?%d*%]?%(?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%)?)"
   variavel, attr, ladoEsquedoOperacao = string.match(line, rgx)
   
-  rgx2 = "%l*%[?%-?%d*%]?%s+=%s+%l*%d*%[?%-?%d*%]?%(?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%)?%s+([%+%-%*%/])" -- rever os espaços
+  rgx2 = "%l*%[?%-?%d*%]?%s+=%s+%l*%d*%[?%-?%d*%]?%(?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%)?%s+([%+%-%*%/])"
   op = string.match(line, rgx2)
 
   if(op == nil) then
@@ -182,7 +188,83 @@ function regexVar(line)
   rgx = "var%s+(%l*%[?(%d*)%]?)"
   variavel, numeroVetor = string.match(line, rgx)
   
-  return variavel, numeroVetor
+  if variavel == nil then
+    return nil
+  end
+
+  if numeroVetor == "" then
+    tabelafuncoes[pilha[#pilha]][variavel] = 0
+  else
+    tabelafuncoes[pilha[#pilha]][variavel] = {}
+    for i = 1, tonumber(numeroVetor) do
+      tabelafuncoes[pilha[#pilha]][variavel][i] = 0
+    end
+  end
+
+  if numeroVetor ~= "" then
+    imprimeTabela1(tabelafuncoes[pilha[#pilha]][variavel])
+  end
+  
+  return variavel
+
+end
+
+--
+-- regex de begin
+--
+function regexBegin(line)
+  local rgx = "begin"
+  local aux = string.match(line, rgx)
+  
+  return aux
+end
+
+ 
+---------- PARTE DO REGEX
+
+function imprimeTabela1(t)
+  for k, v in pairs(t) do
+    print("tabela:", k, v)
+  end
+end
+
+
+function imprimeTabela2(t)
+  for k, v in pairs(t) do
+    print("tabela:", k, v)
+    
+    for v, j in pairs(v) do
+      print(v, j)
+    end
+  end
+end
+
+function imprimePilha()
+  for k, v in pairs(pilha) do
+    print("pilha:", k, v)
+  end
+  print()
+end
+
+
+function iniciaInterpretador(line)
+
+  if regexDeclaracaoFuncao(line) ~= nil then
+    imprimeTabela1(tabelafuncoes)
+    imprimePilha()
+    return 
+  elseif regexVar(line) ~= nil then
+    imprimeTabela2(tabelafuncoes)
+    return 
+  elseif regexBegin(line) ~= nil then
+    return
+  elseif regexAtribuicao(line) ~= nil then
+    teste = regexDeclaracaoFuncao(line)
+  elseif regexIf(line) ~= nil then
+    teste = regexDeclaracaoFuncao(line)
+  elseif regexChamadaFuncao(line) ~= nil then
+    teste = regexDeclaracaoFuncao(line)
+  end
 end
 
 
@@ -191,6 +273,9 @@ end
 --
 for line in file:lines() do
   -- print(line)
+
+  iniciaInterpretador(line)
+
 end
 
 file:close()

@@ -1,3 +1,11 @@
 podemos colocar variaveis criadas em uma tabela
 
 como fazer escopo dinamico?
+
+### utilidades
+
+podemos usar o tonumber para converter string em número;
+
+### duvidas
+
+como converter string em variável
