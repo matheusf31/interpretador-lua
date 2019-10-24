@@ -1,0 +1,8 @@
+function main()
+function foo()
+function fat(i)
+function show()
+function faznada()
+function bar(x)
+function zero(a,b,c)
+function prints(param)
