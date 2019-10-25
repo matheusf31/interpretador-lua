@@ -103,7 +103,9 @@ function regexChamadaFuncao(line)
   -- retorno0 recebe a string completa, recebe a assinatura da função completa, seja ela print ou não
   -- retorno1 recebe o nome da função, para assim fazer a comparação e decidir se ela é print ou não
 	local assinatura, nomefuncao, p1, p2, p3 = string.match(line,str0)	
-																		
+
+  tabelafuncoes[nomefuncao] = {}
+
 	print(assinatura,nomefuncao,p1,p2,p3)
 	
 	if retorno1 == "print" then
@@ -164,7 +166,6 @@ function regexAtribuicao(line)
   
   -- variável de controle da pilha
   local j = 0 
-  
 
   -- essa expressão significa que o argumento passado no lado direito da atribuicao pode tanto ser nome, vetor, numero ou chamada de função
   rgx = "(%l*)%[?(%-?%d*)%]?%s+(=)%s+(%l*%d*%[?%-?%d*%]?%(?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?,?%l*%d*%[?%-?%d*%]?%)?)"
@@ -186,7 +187,15 @@ function regexAtribuicao(line)
       -- caso a variável não esteja no escopo atual procuramos na função chamada anteriormente, simulação de escopo dinâmico
       if tabelafuncoes[pilha[#pilha+j]][variavel] == nil then 
         j = j-1
+      -- atribuições começam aqui
       else
+        
+        -- é uma função
+        if string.match(ladoEsquedoOperacao,"%l+%(") then
+          regexChamadaFuncao(line)
+          return true
+        end
+        
         -- verificar se é um vetor
         if posicaoVetor == nil or posicaoVetor == "" then
           tabelafuncoes[pilha[#pilha+j]][variavel] = ladoEsquedoOperacao
@@ -204,6 +213,8 @@ function regexAtribuicao(line)
             posicaoVetor = corrigeVetorNegativo(posicaoVetor, #tabelafuncoes[pilha[#pilha+j]][variavel])
             tabelafuncoes[pilha[#pilha+j]][variavel][posicaoVetor] = ladoEsquedoOperacao
           end
+
+
         end
       end
     end
@@ -306,6 +317,7 @@ function imprimePilha()
   print()
 end
 
+
 function iniciaInterpretador(line)
   if regexDeclaracaoFuncao(line) ~= nil then
     -- imprimeTabela1(tabelafuncoes)
@@ -319,8 +331,8 @@ function iniciaInterpretador(line)
     return
   elseif regexAtribuicao(line) ~= nil then
     imprimeTabela2(tabelafuncoes)
-    imprimeTabela1(tabelafuncoes[pilha[#pilha]]["x"])
-    imprimeTabela1(tabelafuncoes[pilha[#pilha]]["i"])
+    -- imprimeTabela1(tabelafuncoes[pilha[#pilha]]["x"])
+    -- imprimeTabela1(tabelafuncoes[pilha[#pilha]]["i"])
     return
   -- elseif regexIf(line) ~= nil then
   --   teste = regexDeclaracaoFuncao(line)

@@ -8,9 +8,14 @@
     v[6] = {3,4,7,8,9,11}
 
 ### DUVIDAS
-  como converter string em variável
 
 
 ### PRECISA MUDAR
-  precisamos mudar o nome do vetor para "i[2]" -> "i" pq pode dar problema na hora de procurar a variavel na pilha no regexAtribuicao
-  ex.: se eu declarar "i[2]" esse é o nome dele e se eu querer atribuir em "i[1]" vai ser o nome tbm e n vai ser encontrado
+
+
+### PENDENCIAS
+  - testar regex de attr quando houver mais de uma func na pilha
+
+
+### SEQUÊNCIA
+  - regexAtribuicao, regexChamadaFuncao, regexVar
