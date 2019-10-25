@@ -19,3 +19,7 @@
 
 ### SEQUÊNCIA
   - regexAtribuicao, regexChamadaFuncao, regexVar
+
+
+### ONDE PARAMOS
+  - regexAtribuicao -> declaração de função

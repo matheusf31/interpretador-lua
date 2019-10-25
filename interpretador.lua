@@ -1,6 +1,7 @@
 tabelafuncoes = {}
 pilha = {}
 
+
 --
 -- Pega o nome do arquivo passado como parâmetro (se houver)
 --
