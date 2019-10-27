@@ -1,25 +1,28 @@
 ### UTILIDADES
 
-  podemos usar o tonumber para converter string em número;
-
-  caso ele passe a[-2]:
-    f(x) = x+1
-    f(x) = x + tamanhodovetor + 1 -- x negativo
-    v[6] = {3,4,7,8,9,11}
-
 ### DUVIDAS
-
+  fazer regex pro end ou armazenar sua posição na função
 
 ### PRECISA MUDAR
-
+  - Padronizar os returns
 
 ### PENDENCIAS
-  - testar regex de attr quando houver mais de uma func na pilha
-
-
+  - fazer uma função que retorne erro quando o index do vetor n existe (fora do range do vetor)
+  
+  - testar regex de attr quando houver mais de uma func na pilha - meio feito
+  ##Em atribuição
+    - o nosso lado esquerdo poder ser uma 3-função
+    (para tratar o caso de procurarmos uma função dentro da tabela)
+  
+  ##Em chamada de função
+    - atribuição
+    - if
+    - operacões
+    - print
+    - chamada de função
+  
 ### SEQUÊNCIA
-  - regexAtribuicao, regexChamadaFuncao, regexVar
-
 
 ### ONDE PARAMOS
-  - regexAtribuicao -> declaração de função
+
+
