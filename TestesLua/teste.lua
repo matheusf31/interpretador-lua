@@ -1,3 +1,14 @@
-a = "12"
+a = 10
 
-print(tonumber(a))
+function teste() 
+    print(a)
+end
+
+function teste2()
+    a = 12
+    teste()
+end
+
+teste2()
+
+

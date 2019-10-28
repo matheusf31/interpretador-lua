@@ -3,12 +3,13 @@
 tabelafuncoes = {}
 pilha = {}
 tabelaarquivo = {}
-
+linhaAtual = {"valor"} -- Índice atual do vetor da tabela de arquivos que é uma cópia do arquivo
+                       -- A linha atual é uma tabela pois se fosse uma variável ela estava retornando o valor errado
 
 --
 -- Pega o nome do arquivo passado como parâmetro (se houver)
 --
-local filename = "./Testes/operacao.txt"
+local filename = "./Testes/if.txt"
 if not filename then
    print("Usage: lua interpretador.lua <prog.bpl>")
    os.exit(1)
@@ -137,6 +138,8 @@ function regexIf(line)
   local str, str2, str3, str4, str5
   local verificaIf, verificaElse, ladoEsquerdo, ladoDireito, cmp, localLadoEsquerdo, localLadoDireito, posicaoVetorLadoEsquerdo, posicaoVetorLadoDireito
 
+  --print(linhaAtual)
+
   -- identifica se é um if
   str = "if"
   verificaIf = string.match(line, str)
@@ -144,6 +147,8 @@ function regexIf(line)
   if verificaIf == nil or verificaIf == "" then
     return nil
   end
+
+  --imprimeTabela2(tabelafuncoes)
 
   -- identifica o lado esquerdo da operaçao                               
   str2 = "if%s+(%l*%d*%[?%-?%d*%]?)"
@@ -156,82 +161,144 @@ function regexIf(line)
   str3 = "if%s+%l*%d*%[?%-?%d*%]?".. "%s+" .. cmp .. " (%l*%d*%[?%-?%d*%]?)" 
   ladoDireito = string.match(line, str3)
 
-  -- se for vetor
-  ladoEsquerdo = encontraNumero(ladoEsquerdo)
-  ladoDireito = encontraNumero(ladoDireito)
+  -- extrai os valores numéricos das variaveis do lado esquerdo e direito
+  ladoEsquerdo = extraiNumero(ladoEsquerdo)
+  ladoDireito = extraiNumero(ladoDireito)
   
-
   -- tratamento de cada tipo de comparação
-  -- if cmp == "==" then
-  --   if then
+  if cmp == "==" then
+    -- se a comparação for verdadeira
+    if ladoEsquerdo == ladoDireito then
+      -- faz a operação ou atribuição
+      regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+
+    -- se a comparação é falsa ele vai para o else
+    else
+      -- procuramos a palavra else OU fi caso não tenha else
+      linhaAtual["valor"], aux = procuraPalavra("else")
       
-  --   elseif then
-
-  --   elseif then
-
-  --   end
-  -- elseif cmp == "!=" then
-  --   if then
-
-  --   elseif  then
-
-  --   elseif  then
-
-  --   end
-
-  -- elseif cmp == ">" then
-  --   if then
-      
-  --   elseif  then
-
-  --   elseif  then
-
-  --   end
-
-  -- elseif cmp == "<" then
-  --   if then
-      
-  --   elseif  then
-
-  --   elseif  then
-
-  --   end
-
-  -- elseif cmp == ">=" then
+      -- se tiver else a gente entra aqui
+      if aux == "else" then
+        -- faz uma operação ou attr
+        regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+        -- pula duas linhas para pular o else e a linha de attr ou op       
+      end
+    end
     
-  --   if then
-      
-  --   elseif  then
-
-  --   elseif  then
-
-  --   end
-
-  -- elseif cmp == "<="  then
+    linhaAtual["valor"] = procuraPalavra("fi")
+    return 1
     
-  --   if then
+  elseif cmp == "!=" then
+    -- se a comparação for verdadeira
+    if ladoEsquerdo ~= ladoDireito then
+      -- faz a operação ou atribuição
+      regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+
+    -- se a comparação é falsa ele vai para o else
+    else
+      -- procuramos a palavra else OU fi caso não tenha else
+      linhaAtual["valor"], aux = procuraPalavra("else")
       
-  --   elseif  then
+      -- se tiver else a gente entra aqui
+      if aux == "else" then
+        -- faz uma operação ou attr
+        regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+        -- pula duas linhas para pular o else e a linha de attr ou op       
+      end
+    end
+    
+    linhaAtual["valor"] = procuraPalavra("fi")
+    return 1
 
-  --   elseif  then
+  elseif cmp == ">" then
+    -- se a comparação for verdadeira
+    
+    if ladoEsquerdo > ladoDireito then
+      -- faz a operação ou atribuição
+      regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
 
-  --   end
+    -- se a comparação é falsa ele vai para o else
+    else
+      -- procuramos a palavra else OU fi caso não tenha else
+      linhaAtual["valor"], aux = procuraPalavra("else")
+      
+      -- se tiver else a gente entra aqui
+      if aux == "else" then
+        -- faz uma operação ou attr
+        regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+        -- pula duas linhas para pular o else e a linha de attr ou op       
+      end
+    end
+    
+    linhaAtual["valor"] = procuraPalavra("fi")
+    return 1
 
-  -- end
+  elseif cmp == "<" then
+    -- se a comparação for verdadeira
+    if ladoEsquerdo < ladoDireito then
+      -- faz a operação ou atribuição
+      regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
 
-  -- mudar onde ele é chamado
-  -- regexAtribuicao(line)
+    -- se a comparação é falsa ele vai para o else
+    else
+      -- procuramos a palavra else OU fi caso não tenha else
+      linhaAtual["valor"], aux = procuraPalavra("else")
+      
+      -- se tiver else a gente entra aqui
+      if aux == "else" then
+        -- faz uma operação ou attr
+        regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+        -- pula duas linhas para pular o else e a linha de attr ou op       
+      end
+    end
+    
+    linhaAtual["valor"] = procuraPalavra("fi")
+    return 1
 
-  str4 = "else"
-  verificaElse = string.match(line, str4)
-  if(verificaElse ~= null) then
-    -- tratar else
-  end
+  elseif cmp == ">=" then
+    -- se a comparação for verdadeira
+    if ladoEsquerdo >= ladoDireito then
+      -- faz a operação ou atribuição
+      regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
 
-  str5 = "fi"
-  verificaFi = string.match(line, str4)
-  if(verificaFi ~= null) then
-    -- acaba o if
+    -- se a comparação é falsa ele vai para o else
+    else
+      -- procuramos a palavra else OU fi caso não tenha else
+      linhaAtual["valor"], aux = procuraPalavra("else")
+      
+      -- se tiver else a gente entra aqui
+      if aux == "else" then
+        -- faz uma operação ou attr
+        regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+        -- pula duas linhas para pular o else e a linha de attr ou op       
+      end
+    end
+    
+    linhaAtual["valor"] = procuraPalavra("fi")
+    return 1
+
+  elseif cmp == "<="  then
+    -- se a comparação for verdadeira
+    if ladoEsquerdo <= ladoDireito then
+      -- faz a operação ou atribuição
+      regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+
+    -- se a comparação é falsa ele vai para o else
+    else
+      -- procuramos a palavra else OU fi caso não tenha else
+      linhaAtual["valor"], aux = procuraPalavra("else")
+      
+      -- se tiver else a gente entra aqui
+      if aux == "else" then
+        -- faz uma operação ou attr
+        regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+        -- pula duas linhas para pular o else e a linha de attr ou op       
+      end
+    end
+    
+    linhaAtual["valor"] = procuraPalavra("fi")
+    return 1
+
   end
 end
 
@@ -245,27 +312,30 @@ function regexAtribuicao(variavel,ladoEsquerdo)
   localVariavel = acharPosicao(string.match(variavel, "(%l+)"))
 
   -- TRATAR LADO ESQUERDO
-
+  ladoEsquerdo = extraiNumero(ladoEsquerdo)
+  
+  -- FUNCIONAVA CORRETAMENTE
+  
   -- se for uma função
-  if string.match(ladoEsquerdo,"%l+%(") then
-    -- tratar o caso de ser função
-
-  -- se o lado esquerdo for um vetor
-  elseif string.match(ladoEsquerdo,"%l+%[") then
-    posicaoVetorLadoEsquerdo = string.match(ladoEsquerdo, "%l+%[(%-?%d+)%]")
-    localLadoEsquerdo = acharPosicao(string.match(ladoEsquerdo, "(%l+)"))
-    ladoEsquerdo = transformaLado(localLadoEsquerdo, ladoEsquerdo, posicaoVetorLadoEsquerdo)
-
-  -- se o lado esquerdo for uma variável
-  elseif string.match(ladoEsquerdo,"%l+") then
-    localLadoEsquerdo = acharPosicao(ladoEsquerdo)
-    ladoEsquerdo = transformaLado(localLadoEsquerdo, ladoEsquerdo)
-
-  --se o lado esquerdo for um número
-  else
-    ladoEsquerdo = transformaLado(localLadoEsquerdo, ladoEsquerdo)
-  end
-
+  -- if string.match(ladoEsquerdo,"%l+%(") then
+  --   -- tratar o caso de ser função
+  
+  -- -- se o lado esquerdo for um vetor
+  -- elseif string.match(ladoEsquerdo,"%l+%[") then
+  --   posicaoVetorLadoEsquerdo = string.match(ladoEsquerdo, "%l+%[(%-?%d+)%]")
+  --   localLadoEsquerdo = acharPosicao(string.match(ladoEsquerdo, "(%l+)"))
+  --   ladoEsquerdo = transformaLado(localLadoEsquerdo, ladoEsquerdo, posicaoVetorLadoEsquerdo)
+  
+  -- -- se o lado esquerdo for uma variável
+  -- elseif string.match(ladoEsquerdo,"%l+") then
+  --   localLadoEsquerdo = acharPosicao(ladoEsquerdo)
+  --   ladoEsquerdo = transformaLado(localLadoEsquerdo, ladoEsquerdo)
+  
+  -- --se o lado esquerdo for um número
+  -- else
+  --   ladoEsquerdo = transformaLado(localLadoEsquerdo, ladoEsquerdo)
+  -- end
+  
   -- TRATAR VARIAVEL
   
   -- se a variável é um vetor
@@ -319,9 +389,11 @@ function regexOperacao(line)
 
   -- Se for uma operação
   if op ~= nil and op ~= "" then
+    
+    ladoEsquerdoOperacao = extraiNumero(ladoEsquerdoOperacao)
+    ladoDireitoOperacao = extraiNumero(ladoDireitoOperacao)
 
-    ladoEsquerdoOperacao = encontraNumero(ladoEsquerdoOperacao)
-    ladoDireitoOperacao = encontraNumero(ladoDireitoOperacao)
+    -- FUNCIONAVA CORRETAMENTE
 
     -- TRATANDO LADO ESQUERDO
 
@@ -385,7 +457,6 @@ function regexOperacao(line)
     return 1
   -- Se for uma atribuição
   else
-
     regexAtribuicao(variavel,ladoEsquerdoOperacao)
     return 1
   end
@@ -468,10 +539,26 @@ end
 
 -- ### FIM DO REGEX ###
 
-function encontraNumero(variavel)
+-- REVER DEPOIS
+-- procura fi ou else
+function procuraPalavra(string)
+  local j = linhaAtual["valor"]
+  local i 
+  for i = j, #tabelaarquivo do
+    -- procura um else e retorna sua posição
+    if string.match(tabelaarquivo[i], string) == string then
+      return i, string
+    -- caso o else nao exista a gente procura o fi
+    elseif string.match(tabelaarquivo[i], "fi") == "fi" then
+      return i
+    end
+  end
+end
+
+function extraiNumero(variavel)
   local localVariavel
   localVariavel = acharPosicao(variavel)
-  variavel = transformaLado(localVariavel, variavel, string.match(variavel, "(%-?%d*)"))
+  variavel = transformaLado(localVariavel, variavel, string.match(variavel, "%[(%-?%d*)%]"))
   return variavel
 end
 
@@ -480,7 +567,7 @@ function transformaLado(localizacao, variavel, posicaoVetor)
   if string.match(variavel,"%l+%(") then
     -- tratar depois
     -- return regexChamadaFuncao(variavel)
-
+  
   -- se for um vetor
   elseif string.match(variavel,"%l+%[") then
     variavel = string.match(variavel, "(%l+)")
@@ -509,6 +596,10 @@ end
 -- Encontra j tal que: #pilha + j é a posicao na pilha, e pilha[#pilha+j] é a função onde a variável está
 function acharPosicao(variavel)
   local j = 0
+
+  if string.match(variavel,"%l+%[") ~= nil or string.match(variavel,"%l+%[") ~= "" then
+    variavel = string.match(variavel,"(%l+)")
+  end
 
   for i = 1, #pilha do
     if tabelafuncoes[pilha[#pilha+j]][variavel] == nil then 
@@ -576,37 +667,42 @@ end
 function segundaPassada(line)
   if regexOperacao(line) ~= nil then
     return 1
-  -- elseif regexIf(line) ~= nil then
-  --   return 1
+  elseif regexIf(line) ~= nil then
+    return 1
+  end 
   -- elseif regexChamadaFuncao(line) ~= nil then
   --   return 1
   -- end
-  end
 end
 
 -- Função que executa o interpretador
 function inicia()
   local i = 1
   
+  --print(#tabelaarquivo)
+
   -- Transforma o arquivo em um vetor de strings e faz a declaração de todas as funções e suas variáveis
   for line in file:lines() do
     tabelaarquivo[i] = line
     primeiraPassada(line, i)
     i = i + 1
   end
-
+  
   -- esvaziando a pilha
   pilha = {"main"}
 
   -- Executa as funções
-  -- j = tabelaarquivo["main"][posicaoNoArquivo] para colocarmos o programa para executar direto na main
+  -- linhaAtual["valor"] = tabelaarquivo["main"][posicaoNoArquivo] para colocarmos o programa para executar direto na main
   -- Ainda é necessário terminar no end da main
-  for j = 1, #tabelaarquivo do
-    segundaPassada(tabelaarquivo[j])
+  linhaAtual["valor"] = 1
+  while linhaAtual["valor"] <= #tabelaarquivo do
+    tabelafuncoes["main"]["posicaoNoArquivo"] = linhaAtual
+    segundaPassada(tabelaarquivo[linhaAtual["valor"]])
+    linhaAtual["valor"] = linhaAtual["valor"] + 1 -- Movimentando a linha atual
   end
 
   imprimeTabela2(tabelafuncoes)
-  imprimeTabela1(tabelafuncoes["main"]["x"])
+  -- imprimeTabela1(tabelafuncoes["main"]["x"])
   
 end
 
