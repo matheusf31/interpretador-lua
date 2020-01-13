@@ -1,0 +1,20 @@
+function foo(y)
+begin
+ print(y) 
+ y = 20
+end
+
+function bar(x)
+begin
+ x = 10 * 3
+ foo(x)
+ print(x)
+end
+
+function main()
+ var x
+begin 
+ x = 5
+ bar(x)
+ print(x)
+end

@@ -1,15 +1,24 @@
 --- ### VARIAVEIS GLOBAIS ### ---
 
+-- Tabela que armazena todas as funções e suas variáveis
 tabelafuncoes = {}
+
+-- Tabela que simula o escopo dinâmico, sempre que uma função é chamada ela é empilhada nesta tabela
 pilha = {}
+
+-- Tabela que armazena todo o arquivo, linha por linha
 tabelaarquivo = {}
-linhaAtual = {"valor"} -- Índice atual do vetor da tabela de arquivos que é uma cópia do arquivo
-                       -- A linha atual é uma tabela pois se fosse uma variável ela estava retornando o valor errado
+
+-- Índice atual do vetor da tabela de arquivos que é uma cópia do arquivo, 
+linhaAtual = 0
+
+
+--- ### ABERTURA DO ARQUIVO ### ---
 
 --
 -- Pega o nome do arquivo passado como parâmetro (se houver)
 --
-local filename = "./Testes/codigo2.txt"
+local filename = "./Testes/codigo1.txt"
 if not filename then
    print("Usage: lua interpretador.lua <prog.bpl>")
    os.exit(1)
@@ -24,13 +33,12 @@ end
 
 -- ### REGEX ###
 
-
 --
--- regex para comparação
---
+-- regex para comparação do if
+-- 
 function regexComparacao(line)
-  local comp = "==" -- regex pra igualdade
-  local cmp = string.match(line, comp) -- vou armazenar o comparador em cmp
+  local comp = "==" 
+  local cmp = string.match(line, comp) 
   
   if cmp ~= nil then
     return cmp
@@ -77,34 +85,68 @@ function regexComparacao(line)
   end
 end
 
-
 --
 -- regex para declaração de função
 --
 function regexDeclaracaoFuncao(line, i)
   local str0 = "(function%s+(%l+)%((%l*),?(%l*),?(%l*)%))"
 
-  -- retorno0 recebe a string completa
-  -- retorno1 recebe o nome da função que está sendo atribuída, para depois decidir se ela é main ou não
   local assinatura, nomefuncao, p1, p2, p3 = string.match(line,str0)
 
-  --imprimeTabela2(tabelafuncoes)
-
   if nomefuncao ~= nil then
-    -- cria uma tabela para a função
+    -- Cria uma tabela para a função, e cria variáveis que são padrão para todas as funções
     tabelafuncoes[nomefuncao] = {}
+    
+    -- Colocamos na pilha na declaração para acessarmos a pilha correta na hora da atribuição das variáveis na chamada de regexVarParametros
     pilha[#pilha+1] = nomefuncao
-    tabelafuncoes[nomefuncao]["numVariaveisNaTabela"] = 1
     tabelafuncoes[nomefuncao]["posicaoNoArquivo"] = i
-
-    -- p1, p2 e p3 são variáveis que basicamente dizem se tais paramêtros existem para podermos identifica-los na hora da chamada da função
+    tabelafuncoes[nomefuncao]["posicaoInicialNoArquivo"] = i
+    
+    -- p1, p2 e p3 são os parâmetros das funções, caso exista
     tabelafuncoes[nomefuncao]["p1"] = p1
     tabelafuncoes[nomefuncao]["p2"] = p2
     tabelafuncoes[nomefuncao]["p3"] = p3
-
+    
+    -- Atribui 0 aos paramêtros, caso eles existam, e à variável ret
     regexVarParametros(nomefuncao, p1, p2, p3, i)
+  
+    -- Retorna o nome para o retorno ser diferente de nulo 
     return nomefuncao
-  else 
+  else
+    -- Retornamos nulo para o programa prosseguir na execução (na primeira passada)
+    return nil
+  end
+end
+
+--
+-- regex para declaração de função para resolver recursão
+--
+function copiaRegexDeclaracaoFuncao(line, i, nomefuncaoconcatenada)
+  -- A diferença entre copiaRegexDeclaracaoFuncao e regexDeclaracaoFuncao é que quando a função é recursiva, 
+  -- nós concatenamos a palavra recursão no nome da função original, e este nome modificado é passado como a variável nomefuncaoconcatenada
+  local str0 = "(function%s+(%l+)%((%l*),?(%l*),?(%l*)%))"
+  
+  local assinatura, nomefuncao, p1, p2, p3 = string.match(line,str0)
+
+  if nomefuncao ~= nil then
+    -- Cria uma tabela para a função, e cria variáveis que são padrão para todas as funções
+    tabelafuncoes[nomefuncaoconcatenada] = {}
+    pilha[#pilha+1] = nomefuncaoconcatenada
+    tabelafuncoes[nomefuncaoconcatenada]["posicaoNoArquivo"] = i
+    tabelafuncoes[nomefuncaoconcatenada]["posicaoInicialNoArquivo"] = i
+    
+    -- p1, p2 e p3 são os parâmetros das funções, caso exista
+    tabelafuncoes[nomefuncaoconcatenada]["p1"] = p1
+    tabelafuncoes[nomefuncaoconcatenada]["p2"] = p2
+    tabelafuncoes[nomefuncaoconcatenada]["p3"] = p3
+    
+    -- Atribui 0 aos paramêtros, caso eles existam, e à variável ret
+    regexVarParametros(nomefuncaoconcatenada, p1, p2, p3, i)
+    
+    -- Retorna o nome para o retorno ser diferente de nulo
+    return nomefuncaoconcatenada
+  else
+    -- Retornamos nulo para o programa prosseguir na execução (na primeira passada)
     return nil
   end
 end
@@ -115,64 +157,132 @@ end
 --
 function regexChamadaFuncao(variavel)
   local str0 = "((%l+)%((%l*%d*%[?%-?%d*%]?),?(%l*%d*%[?%-?%d*%]?),?(%l*%d*%[?%-?%d*%]?)%))" 
-  local aux
+  local aux, tmp
 
-  -- retorno0 recebe a string completa, recebe a assinatura da função completa, seja ela print ou não
-  -- retorno1 recebe o nome da função, para assim fazer a comparação e decidir se ela é print ou não
 	local assinatura, nomefuncao, p1, p2, p3 = string.match(variavel,str0)	
 
-
-  if variavel == nil or variavel == "" then
+  -- Caso a variavel não for uma chamada de função, nós retornamos nil
+  if variavel == nil or variavel == "" or string.match(variavel,"%l+%(") == nil or string.match(variavel,"%l+%(") == "" then
     return nil
   end
 
-  -- O ERRO ESTA AQUI, ELE ESTA CHEGANDO AQUI MAS A VARIAVEL TA COM O NOME "VAR X" MAS NAO PODE SER ASSIM
-  print(variavel)
-
+  -- Trata chamadas recursivas
   -- A pilha recebe o nome da função no topo, para saber qual foi a última função que foi chamada
-  pilha[#pilha+1] = nomefuncao
+  -- Se na posicao pilha[#pilha] == nomefuncao, teremos que criar uma nova funcao na tabelafuncoes, com um nome diferente e fazer ela ser a funcao atual
+  if string.match(pilha[#pilha], nomefuncao) == pilha[#pilha] or string.match(pilha[#pilha], nomefuncao .. "recursao") then     
+    -- Nome da função que representa a recursão
+    tmp = pilha[#pilha] .. "recursao"
 
-  if nomefuncao == "print" then
-    pilha[#pilha] = nil
-    p1 = extraiNumero(p1)
-    print(p1)
-    return tabelafuncoes[pilha[#pilha]]["ret"]
-  end
-
-  -- Aqui nós estamos atribuindo os valores (numéricos) que passamos como parâmetro na chamada de função
-  if p1 ~= nil or p1 ~= "" then
-    p1 = extraiNumero(p1)
-    tabelafuncoes[pilha[#pilha]][tabelafuncoes[pilha[#pilha]]["p1"]] = p1
-  end
-
-  if p2 ~= nil or p2 ~= "" then
-    p2 = extraiNumero(p2)
-    tabelafuncoes[pilha[#pilha]][tabelafuncoes[pilha[#pilha]]["p2"]] = p2
-  end
-
-  if p3 ~= nil or p3 ~= "" then
-    p3 = extraiNumero(p3)
-    tabelafuncoes[pilha[#pilha]][tabelafuncoes[pilha[#pilha]]["p3"]] = p3
-  end
-
-  while linhaAtual["valor"] <= #tabelaarquivo do
+    -- Declara a função em sua forma recursiva, alocando apenas seus parâmetros
+    copiaPrimeiraPassada(tabelaarquivo[tabelafuncoes[nomefuncao]["posicaoInicialNoArquivo"]], tabelafuncoes[nomefuncao]["posicaoInicialNoArquivo"], tmp)
     
-    aux = segundaPassada(tabelaarquivo[tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"]])
-    if aux == "end" then
-      -- tiramos a função da pilha
-      pilha[#pilha] = nil      
+    -- Aponta a execução da função que representa a recursão para a linha das declarações das variáveis, caso elas existam 
+    tabelafuncoes[tmp]["posicaoNoArquivo"] = tabelafuncoes[tmp]["posicaoNoArquivo"] + 1
+
+    -- Atribuição dos valores que passamos como parâmetro na chamada de função
+    if p1 ~= nil or p1 ~= "" then
+      p1 = extraiNumero(p1)
+      tabelafuncoes[pilha[#pilha]][tabelafuncoes[pilha[#pilha]]["p1"]] = p1
+    end
+    
+    if p2 ~= nil or p2 ~= "" then
+      p2 = extraiNumero(p2)
+      tabelafuncoes[pilha[#pilha]][tabelafuncoes[pilha[#pilha]]["p2"]] = p2
+    end
+
+    if p3 ~= nil or p3 ~= "" then
+      p3 = extraiNumero(p3)
+      tabelafuncoes[pilha[#pilha]][tabelafuncoes[pilha[#pilha]]["p3"]] = p3
+    end
+    
+    -- Declara as variáveis e apontando a execução para a linha do begin
+    while true do
+      local tmp2
+      tmp2 = copiaPrimeiraPassada(tabelaarquivo[tabelafuncoes[tmp]["posicaoNoArquivo"]], tabelafuncoes[tmp]["posicaoNoArquivo"], tmp)
+      if tmp2 == "begin" then
+        break
+      end
+      tabelafuncoes[tmp]["posicaoNoArquivo"] = tabelafuncoes[tmp]["posicaoNoArquivo"] + 1
+    end
+  
+  -- Trata chamadas não recursivas
+  else
+    
+    -- Empilha a função a função chamada
+    pilha[#pilha+1] = nomefuncao
+
+    -- Trata exclusivamente a chamada da função print
+    if nomefuncao == "print" then
+      -- Desempilhamos porque ao chamar print() ele é empilhado
+      pilha[#pilha] = nil
+      p1 = extraiNumero(p1)
+      print(p1)
       return tabelafuncoes[pilha[#pilha]]["ret"]
     end
-  end
-end
+    
+    -- Atribuição dos valores que passamos como parâmetro na chamada de função
+    if p1 ~= nil or p1 ~= "" then
+      -- Chamamos a copiaExtraiNumero ao invés do extraiNumero porque ao passarmos paramêtros como paramêtro para próxima função devemos fazer a atribuição, e nosso
+      -- extrai número não faz isso, ele pula a função caso a atribuição seja de paramêtros
+      p1 = copiaExtraiNumero(p1, "p1")
+      tabelafuncoes[pilha[#pilha]][tabelafuncoes[pilha[#pilha]]["p1"]] = p1
+    end
+    
+    if p2 ~= nil or p2 ~= "" then
+      p2 = copiaExtraiNumero(p2, "p2")
+      tabelafuncoes[pilha[#pilha]][tabelafuncoes[pilha[#pilha]]["p2"]] = p2
+    end
 
+    if p3 ~= nil or p3 ~= "" then
+      p3 = copiaExtraiNumero(p3, "p3")
+      tabelafuncoes[pilha[#pilha]][tabelafuncoes[pilha[#pilha]]["p3"]] = p3
+    end
+
+  end
+
+  -- Pula o begin (prepara a execução da função em si)
+  tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] + 1
+
+  while linhaAtual <= #tabelaarquivo do
+    
+    -- segundaPassada representa a execução do corpo da função
+    aux = segundaPassada(tabelaarquivo[tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"]])
+    
+    -- Se o aux for 'end' paramos a execução da função
+    if aux == "end" then
+      -- Criamos uma variavel auxiliar para receber o ret para que possamos desempilhar a função
+      local tmp3 = tabelafuncoes[pilha[#pilha]]["ret"]
+      
+      -- Aponta pra posição inicial da função para procurarmos o begin
+      tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = tabelafuncoes[pilha[#pilha]]["posicaoInicialNoArquivo"]
+      
+      -- Procura o begin
+      while true do
+        if regexBegin(tabelaarquivo[tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"]], tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"]) == "begin" then 
+          break
+        end
+        tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] + 1
+      end
+
+      -- Desempilha a função pois ela chegou ao fim da sua execução (end)
+      pilha[#pilha] = nil
+
+      -- tmp3 representa o ret da função, que sempre deve ser retornado
+      return tmp3
+    end
+
+    -- Ir para próxima linha da função que chamou a função antes da recursão main -> foo -> foorecursao
+    tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] + 1
+  end
+  
+end
 
 --
 -- regex do if
 --
 function regexIf(line)
-  local str, str2, str3, str4, str5
-  local verificaIf, verificaElse, ladoEsquerdo, ladoDireito, cmp, localLadoEsquerdo, localLadoDireito, posicaoVetorLadoEsquerdo, posicaoVetorLadoDireito
+  local str, str2, str3, str4, str5, str6
+  local verificaIf, verificaElse, ladoEsquerdo, ladoDireito, cmp, localLadoEsquerdo, localLadoDireito, posicaoVetorLadoEsquerdo, posicaoVetorLadoDireito, aux
 
   -- identifica se é um if
   str = "if"
@@ -183,7 +293,11 @@ function regexIf(line)
     return nil
   end
 
-  --imprimeTabela2(tabelafuncoes)
+  str6 = "if%l+"
+  verificaIf = string.match(line, str6)
+  if verificaIf ~= nil then
+    return nil
+  end
 
   -- identifica o lado esquerdo da operaçao                               
   str2 = "if%s+(%l*%d*%[?%-?%d*%]?)"
@@ -200,138 +314,153 @@ function regexIf(line)
   ladoEsquerdo = extraiNumero(ladoEsquerdo)
   ladoDireito = extraiNumero(ladoDireito)
   
+
   -- tratamento de cada tipo de comparação
   if cmp == "==" then
     -- se a comparação for verdadeira
     if ladoEsquerdo == ladoDireito then
+      
+      tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] + 1
       -- faz a operação ou atribuição
-      regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
-
+      regexOperacao(tabelaarquivo[tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"]])
+      
     -- se a comparação é falsa ele vai para o else
     else
       -- procuramos a palavra else OU fi caso não tenha else
-      linhaAtual["valor"], aux = procuraPalavra("else")
-      
+      tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"], aux = procuraPalavra("else")
       -- se tiver else a gente entra aqui
       if aux == "else" then
+        tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] + 1
         -- faz uma operação ou attr
-        regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+        regexOperacao(tabelaarquivo[tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"]])
         -- pula duas linhas para pular o else e a linha de attr ou op       
       end
     end
     
-    linhaAtual["valor"] = procuraPalavra("fi")
+    tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = procuraPalavra("fi")
     return 1
     
   elseif cmp == "!=" then
     -- se a comparação for verdadeira
     if ladoEsquerdo ~= ladoDireito then
+
+      tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] + 1
       -- faz a operação ou atribuição
-      regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+      regexOperacao(tabelaarquivo[tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"]])
 
     -- se a comparação é falsa ele vai para o else
     else
       -- procuramos a palavra else OU fi caso não tenha else
-      linhaAtual["valor"], aux = procuraPalavra("else")
+      tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"], aux = procuraPalavra("else")
       
       -- se tiver else a gente entra aqui
       if aux == "else" then
+
+        tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] + 1
         -- faz uma operação ou attr
-        regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+        regexOperacao(tabelaarquivo[tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"]])
         -- pula duas linhas para pular o else e a linha de attr ou op       
       end
     end
     
-    linhaAtual["valor"] = procuraPalavra("fi")
+    tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = procuraPalavra("fi")
     return 1
 
   elseif cmp == ">" then
     -- se a comparação for verdadeira
     
     if ladoEsquerdo > ladoDireito then
+      tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] + 1
       -- faz a operação ou atribuição
-      regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+      regexOperacao(tabelaarquivo[tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"]])
 
     -- se a comparação é falsa ele vai para o else
     else
       -- procuramos a palavra else OU fi caso não tenha else
-      linhaAtual["valor"], aux = procuraPalavra("else")
+      tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"], aux = procuraPalavra("else")
       
       -- se tiver else a gente entra aqui
       if aux == "else" then
         -- faz uma operação ou attr
-        regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+        tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] + 1
+        regexOperacao(tabelaarquivo[tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"]])
         -- pula duas linhas para pular o else e a linha de attr ou op       
       end
     end
     
-    linhaAtual["valor"] = procuraPalavra("fi")
+    tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = procuraPalavra("fi")
     return 1
 
   elseif cmp == "<" then
     -- se a comparação for verdadeira
     if ladoEsquerdo < ladoDireito then
+      tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] + 1
       -- faz a operação ou atribuição
-      regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+      regexOperacao(tabelaarquivo[tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"]])
 
     -- se a comparação é falsa ele vai para o else
     else
       -- procuramos a palavra else OU fi caso não tenha else
-      linhaAtual["valor"], aux = procuraPalavra("else")
+      tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"], aux = procuraPalavra("else")
       
       -- se tiver else a gente entra aqui
       if aux == "else" then
+        tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] + 1
         -- faz uma operação ou attr
-        regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+        regexOperacao(tabelaarquivo[tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"]])
         -- pula duas linhas para pular o else e a linha de attr ou op       
       end
     end
     
-    linhaAtual["valor"] = procuraPalavra("fi")
+    tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = procuraPalavra("fi")
     return 1
 
   elseif cmp == ">=" then
     -- se a comparação for verdadeira
     if ladoEsquerdo >= ladoDireito then
+      tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] + 1
       -- faz a operação ou atribuição
-      regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+      regexOperacao(tabelaarquivo[tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"]])
 
     -- se a comparação é falsa ele vai para o else
     else
       -- procuramos a palavra else OU fi caso não tenha else
-      linhaAtual["valor"], aux = procuraPalavra("else")
+      tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"], aux = procuraPalavra("else")
       
       -- se tiver else a gente entra aqui
       if aux == "else" then
+        tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] + 1
         -- faz uma operação ou attr
-        regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+        regexOperacao(tabelaarquivo[tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"]])
         -- pula duas linhas para pular o else e a linha de attr ou op       
       end
     end
     
-    linhaAtual["valor"] = procuraPalavra("fi")
+    tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = procuraPalavra("fi")
     return 1
 
   elseif cmp == "<="  then
     -- se a comparação for verdadeira
     if ladoEsquerdo <= ladoDireito then
+      tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] + 1
       -- faz a operação ou atribuição
-      regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+      regexOperacao(tabelaarquivo[tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"]])
 
     -- se a comparação é falsa ele vai para o else
     else
       -- procuramos a palavra else OU fi caso não tenha else
-      linhaAtual["valor"], aux = procuraPalavra("else")
+      tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"], aux = procuraPalavra("else")
       
       -- se tiver else a gente entra aqui
       if aux == "else" then
+        tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] + 1
         -- faz uma operação ou attr
-        regexOperacao(tabelaarquivo[linhaAtual["valor"] + 1])
+        regexOperacao(tabelaarquivo[tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"]])
         -- pula duas linhas para pular o else e a linha de attr ou op       
       end
     end
     
-    linhaAtual["valor"] = procuraPalavra("fi")
+    tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = procuraPalavra("fi")
     return 1
 
   end
@@ -349,29 +478,7 @@ function regexAtribuicao(variavel,ladoEsquerdo)
   
   -- TRATAR LADO ESQUERDO
   ladoEsquerdo = extraiNumero(ladoEsquerdo)
-  
-  -- FUNCIONAVA CORRETAMENTE
-  
-  -- se for uma função
-  -- if string.match(ladoEsquerdo,"%l+%(") then
-  --   -- tratar o caso de ser função
-  
-  -- -- se o lado esquerdo for um vetor
-  -- elseif string.match(ladoEsquerdo,"%l+%[") then
-  --   posicaoVetorLadoEsquerdo = string.match(ladoEsquerdo, "%l+%[(%-?%d+)%]")
-  --   localLadoEsquerdo = acharPosicao(string.match(ladoEsquerdo, "(%l+)"))
-  --   ladoEsquerdo = transformaLado(localLadoEsquerdo, ladoEsquerdo, posicaoVetorLadoEsquerdo)
-  
-  -- -- se o lado esquerdo for uma variável
-  -- elseif string.match(ladoEsquerdo,"%l+") then
-  --   localLadoEsquerdo = acharPosicao(ladoEsquerdo)
-  --   ladoEsquerdo = transformaLado(localLadoEsquerdo, ladoEsquerdo)
-  
-  -- --se o lado esquerdo for um número
-  -- else
-  --   ladoEsquerdo = transformaLado(localLadoEsquerdo, ladoEsquerdo)
-  -- end
-  
+    
   -- TRATAR VARIAVEL
   
   -- se a variável é um vetor
@@ -383,17 +490,20 @@ function regexAtribuicao(variavel,ladoEsquerdo)
     
     if posicaoVetorVariavel >= 0 then
       posicaoVetorVariavel = corrigeVetorPositivo(posicaoVetorVariavel)
+      verificaVetor(variavel, posicaoVetorVariavel, 0)
       tabelafuncoes[pilha[#pilha+localVariavel]][variavel][posicaoVetorVariavel] = ladoEsquerdo
 
     -- corrige a diferença do vetor que existe entre lua e a linguagem do bruno para valores negativos
     else
       posicaoVetorVariavel = corrigeVetorNegativo(posicaoVetorVariavel, #tabelafuncoes[pilha[#pilha+localVariavel]][variavel])
+      verificaVetor(variavel, posicaoVetorVariavel, 0)
       tabelafuncoes[pilha[#pilha+localVariavel]][variavel][posicaoVetorVariavel] = ladoEsquerdo
     end
 
   -- se a variável é uma palavra
   else
     tabelafuncoes[pilha[#pilha+localVariavel]][variavel] = ladoEsquerdo
+  
   end
     
 end
@@ -403,6 +513,7 @@ end
 -- regex de operacao
 --
 function regexOperacao(line)
+  
   local rgx, rgx2, rgx3, rgx4
   local variavel, ladoEsquerdoOperacao, ladoDireitoOperacao, op, posicaoVetorVariavel, posicaoVetorLadoEsquerdo, posicaoVetorLadoDireito, resultado
   local localLadoEsquerdo, localLadoDireito
@@ -420,60 +531,13 @@ function regexOperacao(line)
   if variavel == nil or variavel == "" then
     return nil
   end
-  
-  -- A PARTIR DAQUI TUDO FOI COPIADO
+
 
   -- Se for uma operação
   if op ~= nil and op ~= "" then
-    
+
     ladoEsquerdoOperacao = extraiNumero(ladoEsquerdoOperacao)
     ladoDireitoOperacao = extraiNumero(ladoDireitoOperacao)
-
-    -- FUNCIONAVA CORRETAMENTE
-
-    -- TRATANDO LADO ESQUERDO
-
-    -- se for função
-    -- if string.match(ladoEsquerdoOperacao,"%l+%(") then
-    --   -- tratar o caso de ser função
-
-    -- -- se for vetor
-    -- elseif string.match(ladoEsquerdoOperacao,"%l+%[") then
-    --   posicaoVetorLadoEsquerdo = string.match(ladoEsquerdoOperacao, "%l+%[(%-?%d+)%]")
-    --   localLadoEsquerdo = acharPosicao(string.match(ladoEsquerdoOperacao, "(%l+)"))
-    --   ladoEsquerdoOperacao = transformaLado(localLadoEsquerdo, ladoEsquerdoOperacao, posicaoVetorLadoEsquerdo)
-
-    -- -- se for variavel
-    -- elseif string.match(ladoEsquerdoOperacao,"%l+") then
-    --   localLadoEsquerdo = acharPosicao(ladoEsquerdoOperacao)
-    --   ladoEsquerdoOperacao = transformaLado(localLadoEsquerdo, ladoEsquerdoOperacao)
-
-    -- --se for número
-    -- else
-    --   ladoEsquerdoOperacao = transformaLado(localLadoEsquerdo, ladoEsquerdoOperacao)
-    -- end
-
-    -- -- TRATANDO LADO DIREITO
-    
-    -- -- se for função
-    -- if string.match(ladoDireitoOperacao,"%l+%(") then
-    --   -- tratar o caso de ser função
-
-    -- -- se for vetor
-    -- elseif string.match(ladoDireitoOperacao,"%l+%[") then
-    --   posicaoVetorLadoDireito = string.match(ladoDireitoOperacao, "%l+%[(%-?%d+)%]")
-    --   localLadoDireito = acharPosicao(string.match(ladoDireitoOperacao, "(%l+)"))
-    --   ladoDireitoOperacao = transformaLado(localLadoDireito, ladoDireitoOperacao, posicaoVetorLadoDireito)
-      
-    -- -- se for variavel
-    -- elseif string.match(ladoDireitoOperacao,"%l+") then
-    --   localLadoDireito = acharPosicao(ladoDireitoOperacao)
-    --   ladoDireitoOperacao = transformaLado(localLadoDireito, ladoDireitoOperacao)
-
-    -- --se for número
-    -- else
-    --   ladoDireitoOperacao = transformaLado(localLadoDireito, ladoDireitoOperacao)
-    -- end
 
     -- TRATANDO AS OPERAÇÕES
     
@@ -516,14 +580,12 @@ function regexVar(line)
   -- Quando a atribuição não for um vetor
   if numeroVetor == "" then
     tabelafuncoes[pilha[#pilha]][variavel] = 0
-    tabelafuncoes[pilha[#pilha]]["numVariaveisNaTabela"] = tabelafuncoes[pilha[#pilha]]["numVariaveisNaTabela"] + 1
   -- Quando a atribuição for um vetor
   else  
     tabelafuncoes[pilha[#pilha]][variavel] = {}
     for i = 1, tonumber(numeroVetor) do
       tabelafuncoes[pilha[#pilha]][variavel][i] = 0
     end
-    tabelafuncoes[pilha[#pilha]]["numVariaveisNaTabela"] = tabelafuncoes[pilha[#pilha]]["numVariaveisNaTabela"] + 1
   end
 
   -- ver o que tem no vetor
@@ -536,42 +598,45 @@ function regexVar(line)
 
 end
 
+
 --
 -- regex dos paramentros das funções
 --
 function regexVarParametros(nomefuncao, p1, p2, p3, i)
- 
+  
   if p1 ~= nil and p1 ~= "" then
     tabelafuncoes[nomefuncao][p1] = 0
-    tabelafuncoes[nomefuncao]["numVariaveisNaTabela"] = tabelafuncoes[pilha[#pilha]]["numVariaveisNaTabela"] + 1
   end
 
   if p2 ~= nil and p2 ~= "" then
     tabelafuncoes[nomefuncao][p2] = 0
-    tabelafuncoes[nomefuncao]["numVariaveisNaTabela"] = tabelafuncoes[pilha[#pilha]]["numVariaveisNaTabela"] + 1
   end
 
   if p3 ~= nil and p3 ~= "" then
     tabelafuncoes[nomefuncao][p3] = 0
-    tabelafuncoes[nomefuncao]["numVariaveisNaTabela"] = tabelafuncoes[pilha[#pilha]]["numVariaveisNaTabela"] + 1
   end
   
   tabelafuncoes[nomefuncao]["ret"] = 0
   tabelafuncoes[nomefuncao]["posicaoNoArquivo"] = i
-  tabelafuncoes[nomefuncao]["numVariaveisNaTabela"] = tabelafuncoes[pilha[#pilha]]["numVariaveisNaTabela"] + 2
-  
 end
 
 --
 -- regex de begin
 --
-function regexBegin(line)
-  local rgx = "begin"
+function regexBegin(line, i)
+  local rgx = "begin", rgx2, verificaBegin
   local aux
   
   aux = string.match(line, rgx)
-  
+
   if aux == "begin" then
+    rgx2 = "begin%l+"
+    verificaBegin = string.match(line, rgx2)
+    if verificaBegin ~= nil then
+      return nil
+    end
+
+    tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = i
     return aux
   else
     return nil
@@ -579,12 +644,20 @@ function regexBegin(line)
 end
 
 
--- ### FIM DO REGEX ###
+-- ### FUNÇÕES AUXILIARES ###
 
--- REVER DEPOIS
+
+function verificaVetor(nomeVetor, i, localizacao)
+  if tabelafuncoes[pilha[#pilha+localizacao]][nomeVetor][i] == nil then
+    print("ERRO!")
+    os.exit(1)
+  end
+  return 1
+end
+
 -- procura fi ou else
 function procuraPalavra(string)
-  local j = linhaAtual["valor"]
+  local j = tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"]
   local i 
   for i = j, #tabelaarquivo do
     -- procura um else e retorna sua posição
@@ -597,21 +670,35 @@ function procuraPalavra(string)
   end
 end
 
-function extraiNumero(variavel)
-
+function extraiNumero(variavel, qualParametro)
   local localVariavel
   
   --Se a variável for uma função
   if string.match(variavel,"%l+%(") then
     return transformaLado(nil, variavel)
+
   -- Se a variável for um número, variável ou um vetor
   else
-    -- print(acharPosicao(variavel))
-    localVariavel = acharPosicao(variavel)
+    localVariavel = acharPosicao(variavel, qualParametro)
     variavel = transformaLado(localVariavel, variavel, string.match(variavel, "%[(%-?%d*)%]"))
     return variavel
   end
   
+end
+
+function copiaExtraiNumero(variavel, qualParametro)
+  local localVariavel
+  
+  --Se a variável for uma função
+  if string.match(variavel,"%l+%(") then
+    return transformaLado(nil, variavel)
+
+  -- Se a variável for um número, variável ou um vetor
+  else
+    localVariavel = copiaAcharPosicao(variavel, qualParametro)
+    variavel = transformaLado(localVariavel, variavel, string.match(variavel, "%[(%-?%d*)%]"))
+    return variavel
+  end
 end
 
 function transformaLado(localizacao, variavel, posicaoVetor)
@@ -627,18 +714,19 @@ function transformaLado(localizacao, variavel, posicaoVetor)
 
     if posicaoVetor >= 0 then
       posicaoVetor = corrigeVetorPositivo(posicaoVetor)
+      verificaVetor(variavel, posicaoVetor, localizacao)
       return tabelafuncoes[pilha[#pilha+localizacao]][variavel][posicaoVetor]
 
     -- Corrige a diferença do vetor que existe entre lua e a linguagem do bruno para valores negativos
     else
       posicaoVetor = corrigeVetorNegativo(posicaoVetor, #tabelafuncoes[pilha[#pilha+localizacao]][variavel])
+      verificaVetor(variavel, posicaoVetor, localizacao)
       return tabelafuncoes[pilha[#pilha+localizacao]][variavel][posicaoVetor]
     end
 
   -- Se for uma variavel
   elseif string.match(variavel,"%l+") then
     return tabelafuncoes[pilha[#pilha+localizacao]][variavel]
-
   -- Se for um numero
   else
     return tonumber(variavel)
@@ -646,14 +734,32 @@ function transformaLado(localizacao, variavel, posicaoVetor)
 end
 
 -- Encontra j tal que: #pilha + j é a posicao na pilha, e pilha[#pilha+j] é a função onde a variável está
-function acharPosicao(variavel)
+function acharPosicao(variavel, qualParametro)
   local j = 0
-
-  if string.match(variavel,"%l+%[") ~= nil or string.match(variavel,"%l+%[") ~= "" then
+    
+  -- se for um vetor extraimos o NOME dele
+  if string.match(variavel,"%l+%[") ~= nil and string.match(variavel,"%l+%[") ~= "" then
     variavel = string.match(variavel,"(%l+)")
   end
+  
+  -- Se a função tiver um parâmetro nós decrementamos o j para apontar para a função anterior na pilha, porque ela estava apontando para ela mesma, e o correto quando
+  -- Se é um paramêtro procuramos na função anterior
+  if tabelafuncoes[pilha[#pilha]][qualParametro] ~= nil and tabelafuncoes[pilha[#pilha]][qualParametro] ~= "" then
+    j = j-1
+  end
 
-  for i = 1, #pilha do
+  -- Procura a posição da variavel, seja ela um vetor, uma variável ou um número, no máximo até a main (se pilha[#pilha+j] passar da main é nil)
+  while pilha[#pilha+j] ~= nil do
+    -- Se j < 0 significa que estamos olhando funções anteriores e só podemos utilizar variáveis que são declaradas (Ex: var algumacoisa), logo voltamos a pilha se
+    -- a variável for um paramêtro 
+    if j < 0 and variavel ~= "" then
+      -- Verificamos se a variável usada é parâmetro da função que a chamou
+      if variavel == tabelafuncoes[pilha[#pilha+j]]["p1"] or variavel == tabelafuncoes[pilha[#pilha+j]]["p2"] or variavel == tabelafuncoes[pilha[#pilha+j]]["p3"] then 
+        j = j-1
+      end
+    end
+
+    -- Se j == 0, pula-se o if de cima e olhamos tanto os paramêtros quanto as variáveis locais
     if tabelafuncoes[pilha[#pilha+j]][variavel] == nil then 
       j = j-1
     else
@@ -663,6 +769,35 @@ function acharPosicao(variavel)
 
   return j
 end
+
+function copiaAcharPosicao(variavel, qualParametro)
+  local j = 0
+    
+    -- se for um vetor extraimos o NOME dele
+    if string.match(variavel,"%l+%[") ~= nil and string.match(variavel,"%l+%[") ~= "" then
+      variavel = string.match(variavel,"(%l+)")
+    end
+    
+    -- Se a função tiver um parâmetro nós decrementamos o j para apontar para a função anterior na pilha, porque ela estava apontando para ela mesma, e o correto quando
+    -- Se é um paramêtro procuramos na função anterior
+    if tabelafuncoes[pilha[#pilha]][qualParametro] ~= nil and tabelafuncoes[pilha[#pilha]][qualParametro] ~= "" then
+      j = j-1
+    end
+ 
+    -- Procura a posição da variavel, seja ela um vetor, uma variável ou um número, no máximo até a main (se pilha[#pilha+j] passar da main é nil)
+    while pilha[#pilha+j] ~= nil do
+      -- Se j == 0, pula-se o if de cima e olhamos tanto os paramêtros quanto as variáveis locais
+      if tabelafuncoes[pilha[#pilha+j]][variavel] == nil then 
+        j = j-1
+      else
+        break
+      end
+    end
+
+  return j
+end
+
+
 
 function corrigeVetorPositivo(posicaoVetor) 
   return posicaoVetor + 1
@@ -685,8 +820,9 @@ function imprimeTabela2(t)
     for v, j in pairs(v) do
       print(v, j)
     end
+    print("\n")
   end
-  print("\n")
+  
 end
 
 function imprimePilha()
@@ -711,7 +847,20 @@ function primeiraPassada(line, i)
   if regexDeclaracaoFuncao(line, i) ~= nil then
     return 1
   elseif regexVar(line) ~= nil then
+    -- tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] = tabelafuncoes[pilha[#pilha]]["posicaoNoArquivo"] + 1
     return 1
+  elseif regexBegin(line, i) ~= nil then
+    return 1
+  end
+end
+
+function copiaPrimeiraPassada(line, i, nomefuncaoconcatenada)
+  if copiaRegexDeclaracaoFuncao(line, i, nomefuncaoconcatenada) ~= nil then
+    return 1
+  elseif regexVar(line) ~= nil then
+    return 1
+  elseif regexBegin(line, i) ~= nil then
+    return "begin"
   end
 end
 
@@ -719,9 +868,7 @@ end
 function segundaPassada(line)
   if string.match(line, "end") == "end" then
     return "end"
-  elseif regexBegin(line) ~= nil then
-    return 1
-  elseif regexOperacao(line) ~= nil then
+  elseif regexOperacao(line) ~= nil then 
     return 1
   elseif regexIf(line) ~= nil then
     return 1
@@ -734,7 +881,6 @@ end
 function inicia()
   local i = 1
   local aux
-  --print(#tabelaarquivo)
 
   -- Transforma o arquivo em um vetor de strings e faz a declaração de todas as funções e suas variáveis
   for line in file:lines() do
@@ -747,23 +893,19 @@ function inicia()
   pilha = {"main"}
 
   -- Executa as funções
-  linhaAtual["valor"] = tabelafuncoes["main"]["posicaoNoArquivo"] + 1
- 
+  linhaAtual = tabelafuncoes["main"]["posicaoNoArquivo"] + 1
   
-  while linhaAtual["valor"] <= #tabelaarquivo do
-    tabelafuncoes["main"]["posicaoNoArquivo"] = linhaAtual["valor"]
+  while linhaAtual <= #tabelaarquivo do
+    tabelafuncoes["main"]["posicaoNoArquivo"] = linhaAtual
     
-    aux = segundaPassada(tabelaarquivo[linhaAtual["valor"]])
+    aux = segundaPassada(tabelaarquivo[linhaAtual])
     
     if aux == "end" then
       break
     end
 
-    linhaAtual["valor"] = linhaAtual["valor"] + 1 -- Movimentando a linha atual
+    linhaAtual = linhaAtual + 1
   end
-
-  -- imprimeTabela2(tabelafuncoes)
-  -- imprimeTabela1(tabelafuncoes["main"]["x"])
 end
 
 -- ### INÍCIO DO PROGRAMA ###

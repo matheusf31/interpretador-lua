@@ -1,0 +1,15 @@
+function footeste()
+begin
+  ret = 10
+end
+
+function foo()
+begin
+  ret = footeste()
+  print(ret)
+end
+
+function main()
+begin
+  foo()
+end

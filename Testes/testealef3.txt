@@ -1,0 +1,10 @@
+function main()
+    var a[8]
+    var b
+begin
+    b = 6
+
+    print(b)
+
+    print(a[8])
+end

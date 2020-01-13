@@ -1,0 +1,26 @@
+function foo()
+begin
+ print(x)
+ x = 20 
+end
+
+function bar(a,b,w)
+begin
+  print(a)
+  print(b)
+  print(w)
+end
+
+function main()
+  var a[3]
+  var b
+  var c
+begin
+  a[2] = 100
+  b = 1000
+  c = 10000
+  bar(a[2],b,c)
+  print(a[1])
+  print(b)
+  print(c)
+end

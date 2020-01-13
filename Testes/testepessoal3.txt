@@ -1,0 +1,11 @@
+function foo(i)
+begin
+  print(1)
+end
+
+function main()
+  var a[2]
+begin
+  a[1] = 100
+  foo(a[-7])
+end

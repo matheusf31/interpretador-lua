@@ -1,0 +1,16 @@
+function foo()
+begin
+  print(1)
+  bar()
+end
+
+function bar()
+begin
+  print(2)
+  foo()
+end
+
+function main()
+begin
+  foo()
+end

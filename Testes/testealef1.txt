@@ -1,0 +1,11 @@
+function main()
+	var abc
+	var k[3]
+begin
+	abc = 7
+	k[0] = 77
+	k[1] = 49
+	k[2] = k[0] * k[1]
+	k[2] = k[2] + abc
+	print(k[2])
+end

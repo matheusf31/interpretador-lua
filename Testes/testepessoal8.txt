@@ -1,0 +1,19 @@
+function arroz(a,b,c)
+begin
+    print(a)
+    print(b)
+    print(c)
+end
+
+function main()
+    var a
+    var b
+    var c
+    var vetor[1000]
+begin
+    vetor[900] = 6 / 5
+    vetor[800] = 6 * 5
+    vetor[700] = 6 - -5
+
+    arroz(vetor[900],vetor[800],vetor[700])
+end

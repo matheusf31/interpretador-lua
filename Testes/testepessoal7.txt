@@ -1,0 +1,19 @@
+function segundachamada(y)
+begin
+    print(y)
+end
+
+function primeirachamada(x)
+begin
+    x = 100
+    print(x)
+    segundachamada(x)
+end
+
+function main()
+    var x
+begin
+    x = 100000
+    primeirachamada(x)
+    print(x)
+end

@@ -1,0 +1,16 @@
+function bteste(b)
+begin
+  ret = b
+end
+
+function teste(a)
+begin
+  ret = a
+end
+
+function main()
+    var resposta
+begin
+    resposta = teste(1) + teste(2)
+    print(resposta)
+end
