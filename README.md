@@ -1,6 +1,6 @@
 # Sobre:
 
-- Interpretador feito utilizando Lua, para interpretar a linguagem descrita pelo professor;
+- Interpretador feito em parceria com o _, utilizando Lua, para interpretar a linguagem descrita pelo professor;
 
 - [Descrição do trabalho](/Descrição.pdf)
 
