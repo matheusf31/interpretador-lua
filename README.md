@@ -8,7 +8,7 @@
 
 - Clone ou baixe o repositório;
 
-- Certifique-se que você possua a linguagem instalada na máquina;
+- Certifique-se que você possua a linguagem instalada no SO;
 
 - Dentro do interpretador.lua, na linha 21, coloque o nome do arquivo que será testado (sugiro colocar algum da pasta Testes) ou deixe o que já está;
 
